@@ -1,15 +1,61 @@
 <template>
   <div class="multi-doctor-calendar">
+    <div class="doctors-legend">
+      <div>
+        <div class="calendar-controls">
+          <button @click="goToPrevious" class="nav-btn">
+            <span>⬅️</span> Önceki
+          </button>
+          <button @click="goToToday" class="today-btn">
+            <span>🏠</span> Bugün
+          </button>
+          <button @click="goToNext" class="nav-btn">
+            Sonraki <span>➡️</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="calendar-container">
+      <FullCalendar
+        ref="fullCalendar"
+        :options="calendarOptions"
+      />
+      
+    </div>
 
-    <!-- Doktor Legendası -->
+    <!-- Tarih Modal -->
+    <div v-if="isModalOpenDate" class="modal-overlay" @click="closeDetailModal">
+      <div class="modal-content detail-modal" @click.stop>
+
+        <div class="modal-header">
+          <h3> Tarih Seçin</h3>
+        </div>
+          <!-- Tarih Seçici -->
+           <VueDatePicker 
+    v-model="selectedDate"
+      
+      :action-row="false"
+      :auto-apply="true"
+      locale="tr"
+      :inline="true"
+      :enable-time-picker="false"
+      @update:model-value="goToSelectedDate"
+      :min-date="new Date()"
+      class="calendar-controls"
+  />
+      </div>
+      </div>
+         <!-- Doktor Detay Modal -->
+    <div v-if="isModalOpen" class="modal-overlay" @click="closeDetailModal">
+      <div class="modal-content detail-modal" @click.stop>
+        <h3>📋 Doktor Detayları</h3>
+       <!-- Doktor Legendası -->
     <div class="doctors-legend">
       <div class="legend-header">
         <h3>👥 Hastane Doktorları & Randevu Dağılımı</h3>
         <div class="legend-stats">
           <span class="total-appointments">📊 Toplam: {{ allAppointments.length }} randevu</span>
-          <span class="active-view">
-            {{ selectedDoctor === 'all' ? '🏥 Tüm doktorların randevuları görüntüleniyor' : `👨‍⚕️ ${getDoctorName(selectedDoctor)} randevuları görüntüleniyor` }}
-          </span>
+          
         </div>
       </div>
       
@@ -51,45 +97,9 @@
         </div>
       </div>
     </div>
-    <div class="doctors-legend">
-      <div class="current-info">
-          <span class="current-date">{{ getCurrentDate() }}</span>
-          <span class="current-time">{{ currentTime }}</span>
-        </div>
-      <div class="header-right">
-        <div class="date-picker-container">
-          <label>📍 Tarihe Git:</label>
-          <input 
-            type="date" 
-            v-model="selectedDate" 
-            @change="goToSelectedDate"
-            class="date-picker"
-          />
-        </div>
-        
-        <div class="calendar-controls">
-          <button @click="goToPrevious" class="nav-btn">
-            <span>⬅️</span> Önceki
-          </button>
-          <button @click="goToToday" class="today-btn">
-            <span>🏠</span> Bugün
-          </button>
-          <button @click="goToNext" class="nav-btn">
-            Sonraki <span>➡️</span>
-          </button>
-        </div>
+       
       </div>
     </div>
-    <div class="calendar-container">
-       
-      <FullCalendar
-      
-        ref="fullCalendar"
-        :options="calendarOptions"
-      />
-      
-    </div>
-   
     <!-- Randevu Ekleme Modal -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
@@ -220,6 +230,8 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import trLocale from '@fullcalendar/core/locales/tr'
+import VueDatePicker from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 
 // Refs
 const fullCalendar = ref(null)
@@ -240,6 +252,9 @@ const newAppointment = reactive({
   appointmentType: 'Genel Muayene',
   notes: ''
 })
+const isModalOpen = ref(false)
+const isModalOpenDate = ref(false)
+
 
 // Data
 const doctors = ref([
@@ -690,10 +705,25 @@ const calendarOptions = reactive({
   initialView: 'timeGridWeek',
   locale: trLocale,
   headerToolbar: {
-    left: '',
+    left: 'addEventBtn,filterBtn',
     center: 'title',
     right: 'dayGridMonth,timeGridWeek,timeGridDay'
   },
+   customButtons: {
+    addEventBtn: {
+      text: '🔍 Filtrele',
+      click: function() {
+          isModalOpen.value = true
+      }
+    },
+    filterBtn: {
+      text: '📍 Tarihe Git',
+      click: function() {
+         isModalOpenDate.value = true
+       
+      }
+    }
+},
   titleFormat: {
     year: 'numeric',
     month: 'long',
@@ -714,7 +744,7 @@ const calendarOptions = reactive({
   selectMirror: true,
   select: handleDateSelect,
   eventClick: handleEventClick,
-  editable: true,
+  editable: false,
   dayMaxEvents: false,
   weekends: true,
   events: allAppointments.value,
@@ -833,6 +863,7 @@ function validateAppointment() {
 
 function filterByDoctor() {
   updateCalendarEvents()
+  isModalOpen.value = false
 }
 
 function updateCalendarEvents() {
@@ -883,6 +914,7 @@ function closeModal() {
 
 function closeDetailModal() {
   showDetailModal.value = false
+  isModalOpen.value = false
   Object.assign(selectedAppointment, {})
 }
 
@@ -906,6 +938,7 @@ function goToToday() {
 function goToSelectedDate() {
   const api = fullCalendar.value.getApi()
   api.gotoDate(selectedDate.value)
+  isModalOpenDate.value = false
 }
 
 function updateCurrentTime() {
@@ -1049,6 +1082,7 @@ onMounted(() => {
 .calendar-controls {
   display: flex;
   gap: 8px;
+  justify-content: center;
 }
 
 .nav-btn, .today-btn {

@@ -40,10 +40,7 @@ onErrorCaptured((error) => {
   console.error('Global error:', error)
 })
 
-// App lifecycle hooks
-onMounted(() => {
-  console.log('App mounted')
-})
+
 </script>
 
 <style>

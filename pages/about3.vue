@@ -1,0 +1,3 @@
+<template>
+  <DifferenUi/>
+</template>
